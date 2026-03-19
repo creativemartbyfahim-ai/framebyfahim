@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eid Frame Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Hind Siliguri',sans-serif;background:#111;color:#fff;text-align:center}
+.container{max-width:420px;margin:auto;padding:10px}
+canvas{width:100%;border-radius:14px;touch-action:none;background:#000}
+.upload{margin:10px 0;padding:15px;border:2px dashed #555;border-radius:12px;cursor:pointer}
+input{display:none}
+.btns{display:flex;gap:8px;margin-top:10px}
+button{flex:1;padding:12px;border:none;border-radius:10px;background:#ff5a00;color:#fff}
+</style>
+</head>
+<body>
+<div class="container">
+<h3>📸 ফ্রেম এডিটর</h3>
+<label class="upload">ছবি আপলোড<input type="file" id="upload" accept="image/*"></label>
+<canvas id="canvas"></canvas>
+<div class="btns">
+<button onclick="zoomIn()">➕</button>
+<button onclick="zoomOut()">➖</button>
+<button onclick="downloadImage()">⬇️</button>
+</div>
+</div>
+<script>
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const upload=document.getElementById('upload');let userImg=new Image(); let frameImg=new Image(); let scale=1,posX=0,posY=0; let velX=0,velY=0; let pointers=new Map(); let lastDist=0;
+
+frameImg.src='frame.png'; frameImg.onload=()=>{ canvas.width=frameImg.width; canvas.height=frameImg.height; draw(); }
+
+function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); if(userImg.src){ ctx.drawImage(userImg,posX,posY,userImg.widthscale,userImg.heightscale); } ctx.drawImage(frameImg,0,0,canvas.width,canvas.height); }
+
+upload.onchange=e=>{ const file=e.target.files[0]; const r=new FileReader(); r.onload=ev=>{ userImg.src=ev.target.result; userImg.onload=()=>{ scale=canvas.width/userImg.width; posX=0;posY=0; draw(); } } r.readAsDataURL(file); }
+
+canvas.onpointerdown=e=>{ canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); velX=0; velY=0; }
+
+canvas.onpointermove=e=>{ if(!pointers.has(e.pointerId)) return; const prev=pointers.get(e.pointerId); const dx=e.clientX-prev.x; const dy=e.clientY-prev.y; pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+if(pointers.size===1){ posX+=dx; posY+=dy; velX=dx; velY=dy; } if(pointers.size===2){ const pts=[...pointers.values()]; const dist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y); if(lastDist){ scale+= (dist-lastDist)*0.005; scale=Math.max(0.1,scale); } lastDist=dist; } draw(); }
+
+canvas.onpointerup=e=>{ pointers.delete(e.pointerId); canvas.releasePointerCapture(e.pointerId); if(pointers.size<2) lastDist=0; requestAnimationFrame(inertia); }
+
+canvas.onpointercancel=e=>pointers.delete(e.pointerId);
+
+function inertia(){ if(Math.abs(velX)>0.5||Math.abs(velY)>0.5){ posX+=velX; posY+=velY; velX*=0.9; velY*=0.9; draw(); requestAnimationFrame(inertia); } }
+
+function zoomIn(){scale+=0.1;draw()} function zoomOut(){scale=Math.max(0.1,scale-0.1);draw()}
+
+function downloadImage(){ const a=document.createElement('a'); a.download='eid.jpg'; a.href=canvas.toDataURL('image/jpeg',0.95); a.click(); } </script>
+
+</body>
+</html>
